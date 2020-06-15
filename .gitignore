@@ -1,0 +1,5 @@
+build/
+dist/
+file_sync.egg-info/
+venv/
+.idea/
