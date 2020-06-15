@@ -1,0 +1,2 @@
+python-json-logger == 0.1.11
+unittest-xml-reporting == 3.0.2
