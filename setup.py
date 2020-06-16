@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name="file_sync",
+    name="filesync",
     version="1.0",
     description="Mirage™ File Sync",
     url="https://www.percipient.ai",
@@ -14,6 +14,5 @@ setup(
             "config/logging_config.ini",
         ]
     },
-    entry_points={"console_scripts": ["file_sync=file_sync.agent:main"],
-                  "file_sync_plugins": ["s3 = plugins.s3filesync.file_sync:do_run"]},
+    entry_points={"console_scripts": ["file_sync=file_sync.agent:main"]},
 )
