@@ -1,2 +1,2 @@
-def do_run():
+def plugin_instance():
     print("S3 file sync")

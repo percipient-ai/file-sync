@@ -7,5 +7,5 @@ setup(
     url="https://www.percipient.ai",
     author="percipient.ai",
     license="Proprietary",
-    entry_points={"file_sync_plugins": ["s3=file_sync.plugins.s3filesync.file_sync:do_run"]},
+    entry_points={"file_sync_plugins": ["s3=file_sync.plugins.s3.file_sync:plugin_instance"]},
 )
