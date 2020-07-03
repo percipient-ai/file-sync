@@ -1,5 +1,6 @@
 build/
 dist/
-file_sync.egg-info/
+*.egg-info/
+__pycache__/
 venv/
 .idea/
