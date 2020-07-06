@@ -28,7 +28,6 @@ class S3FileSync:
 
         # Returns a list of tuples of the form: (<relative path after prefix>, < timestamp>).
         paths = self.find_by_prefix(bucket, prefix+"/")
-        LOG.info("Bucket and prefix valid; found non-zero number of files.")
 
         # Filter only those paths that have not been seen previously
         watermark_mtime = watermark_ts.timestamp() if watermark_ts is not None else 0
@@ -56,7 +55,7 @@ class S3FileSync:
 
             retval.append((ts, unique_id, ds_details))
 
-        LOG.info("Found {} new datasets.".format(len(retval)))
+        LOG.info("Found {} new dataset(s).".format(len(retval)))
 
         return retval
 

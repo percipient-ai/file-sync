@@ -17,7 +17,9 @@ import logging.config
 import os
 import pkg_resources
 import requests
+import schedule
 import sys
+import time
 
 from .geotiff_processing_utils import get_job_config_map as get_geotiff_job_config_map, get_workflow_display_info as get_geotiff_workflow_display_info
 
@@ -26,12 +28,12 @@ LOG = logging.getLogger("root")
 
 
 def main():
-    LOG.info("Launching run ..")
+    LOG.info("Launching filesync agent ..")
 
     # Get command line arguments
     args = docopt.docopt(__doc__)
-    config_file = args["--config-file"] or "/var/cron.d/filesync.ini"
-    file_source = args["--file-source"] or "s3"
+    config_file = args["--config-file"] if "--config-file" in args else "/var/cron.d/filesync.ini"
+    file_source = args["--file-source"] if "--file-source" in args else "s3"
 
     LOG.info(f"* config file: {config_file}")
     LOG.info(f"* file source: {file_source}")
@@ -42,17 +44,8 @@ def main():
     agent_config = config["agent"]
     plugin_config = config[file_source] if file_source in config else None
 
-    # File that holds the watermark (file timestamp until which jobs have been created)
-    watermark_file = agent_config["watermark_file"] or "/var/data/filesync/watermark"
-    # Read watermark timestamp (timestamp of last media file or folder for which processing job was created in the backend)
-    watermark_ts = read_watermark(watermark_file)
-    if watermark_ts is None:
-        LOG.info("Found no watermark!")
-    else:
-        LOG.info("Watermark: {}".format(watermark_ts.isoformat()))
-
     # Type of workflow that this agent this configured to create in the backend for every media asset it discovers
-    workflow_type = agent_config["workflow"] or "geotiff_image_processing"
+    workflow_type = agent_config["workflow"] if "workflow" in agent_config else "geotiff_image_processing"
     LOG.info(f"Agent is configured to create workflow: {workflow_type}")
 
     # Get auth token from backend
@@ -77,6 +70,27 @@ def main():
         LOG.error("No file-sync plugin found for specified file source! Exiting ..")
         sys.exit(1)
 
+    # Schedule file-sync agent runs
+    schedule_sec = agent_config["schedule_sec"] if "schedule_sec" in agent_config else 15
+    schedule.every(int(schedule_sec)).seconds.do(run, agent_config, file_sync_plugin, plugin_config, auth_token)
+
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+
+def run(agent_config, file_sync_plugin, plugin_config, auth_token):
+    LOG.info("Starting run ..")
+
+    # File that holds the watermark (file timestamp until which jobs have been created)
+    watermark_file = agent_config["watermark_file"] if "watermark_file" in agent_config else "/var/data/filesync/watermark"
+    # Read watermark timestamp (timestamp of last media file or folder for which processing job was created in the backend)
+    watermark_ts = read_watermark(watermark_file)
+    if watermark_ts is None:
+        LOG.info("Found no watermark!")
+    else:
+        LOG.info("Watermark: {}".format(watermark_ts.isoformat()))
+
     # Discover files
     try:
         ts_uniqueid_config_tuples = file_sync_plugin.discover(watermark_ts, plugin_config)
@@ -89,6 +103,8 @@ def main():
 
     # Create a unique id for this run, that will be used as the batch id for the jobs created in this run.
     batch_id = str(datetime.now().timestamp())
+
+    workflow_type = agent_config["workflow"] if "workflow" in agent_config else "geotiff_image_processing"
 
     # For each tuple ..
     move_watermark = True
